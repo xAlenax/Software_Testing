@@ -90,7 +90,11 @@ class Cart:
         Returns:
             str: A message indicating the item was removed.
         """
+        initial_len = len(self.items)
         self.items = [item for item in self.items if item.name != name]
+
+        if len(self.items) == initial_len:
+            return f"{name} not found in cart"
         return f"Removed {name} from cart"
 
     def update_item_quantity(self, name, new_quantity):

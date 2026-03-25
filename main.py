@@ -7,6 +7,7 @@ from User_Registration import UserRegistration
 from Order_Placement import Cart, OrderPlacement, UserProfile, RestaurantMenu, PaymentMethod
 from Payment_Processing import PaymentProcessing
 from Restaurant_Browsing import RestaurantDatabase, RestaurantBrowsing
+from Order_History import OrderHistory
 
 # Utility functions for user data storage
 USERS_FILE = "users.json"
@@ -190,6 +191,9 @@ class MainAppFrame(tk.Frame):
         self.results_tree.heading("rating", text="Rating")
         self.results_tree.pack(pady=10, fill="x")
 
+        # Order History
+        self.order_history = OrderHistory()
+
         # Buttons for actions
         action_frame = tk.Frame(self)
         action_frame.pack(pady=5)
@@ -197,6 +201,7 @@ class MainAppFrame(tk.Frame):
         tk.Button(action_frame, text="Add Item to Cart", command=self.add_item_to_cart).pack(side="left", padx=5)
         tk.Button(action_frame, text="View Cart", command=self.view_cart).pack(side="left", padx=5)
         tk.Button(action_frame, text="Checkout", command=self.checkout).pack(side="left", padx=5)
+        tk.Button(action_frame, text="View Order History", command=self.view_order_history).pack(side="left", padx=5)
 
     def search_restaurants(self):
         self.results_tree.delete(*self.results_tree.get_children())
@@ -232,6 +237,10 @@ class MainAppFrame(tk.Frame):
         # Show Checkout Popup
         checkout_popup = CheckoutPopup(self, self.order_placement)
         self.wait_window(checkout_popup)
+
+    def view_order_history(self):
+        popup = OrderHistoryPopup(self, self.order_history)
+        self.wait_window(popup)
 
 # Validate quantity input. Returns int if valid, raises ValueError if invalid. 
 def validate_quantity(qty_str):
@@ -286,8 +295,20 @@ class CartViewPopup(tk.Toplevel):
             tk.Label(self, text="Your cart is empty").pack(pady=20)
         else:
             for i in items:
-                tk.Label(self, text=f"{i['name']} x{i['quantity']} = ${i['subtotal']:.2f}").pack()
+                frame = tk.Frame(self)
+                frame.pack(pady=2)
 
+                tk.Label(frame, text=f"{i['name']} x{i['quantity']} = ${i['subtotal']:.2f}").pack(side="left")
+
+                tk.Button(frame, text="Delete", fg="red",
+                    command=lambda name=i['name']: self.remove_item(name)).pack(side="right")
+
+    def remove_item(self, name):
+        msg = self.master.cart.remove_item(name)
+        messagebox.showinfo("Cart", msg)
+        self.destroy()
+        new_popup = CartViewPopup(self.master, self.master.cart)
+        self.master.wait_window(new_popup)
 
 class CheckoutPopup(tk.Toplevel):
     def __init__(self, master, order_placement):
@@ -335,11 +356,30 @@ class CheckoutPopup(tk.Toplevel):
         # Confirm the order
         result = self.order_placement.confirm_order(payment_method_obj)
         if result["success"]:
+            order_data = self.order_placement.proceed_to_checkout()
+            self.master.order_history.add_order(
+                result["order_id"],
+                order_data["items"],
+                order_data["total_info"]["total"]
+        )
+
             messagebox.showinfo("Order Confirmed", f"Order ID: {result['order_id']}\nEstimated Delivery: {result['estimated_delivery']}")
             self.destroy()
         else:
             messagebox.showerror("Error", result["message"])
 
+class OrderHistoryPopup(tk.Toplevel):
+    def __init__(self, master, history):
+        super().__init__(master)
+        self.title("Order History")
+
+        orders = history.get_orders()
+
+        if not orders:
+            tk.Label(self, text="No past orders").pack(pady=20)
+        else:
+            for o in orders:
+                tk.Label(self, text=f"{o['order_id']} - ${o['total']}").pack()
 
 if __name__ == "__main__":
     app = Application()
