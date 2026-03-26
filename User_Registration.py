@@ -127,5 +127,18 @@ class TestUserRegistration(unittest.TestCase):
         self.assertFalse(result['success'])  # Ensures registration fails due to the email already being registered.
         self.assertEqual(result['error'], "Email already registered")  # Checks the specific error message.
 
+    def test_is_valid_email(self):
+        """
+        Test various valid and invalid email formats.
+        """
+        # Valid
+        self.assertTrue(self.registration.is_valid_email("user@example.com"))
+
+        # Invalid formats
+        self.assertFalse(self.registration.is_valid_email("userexample.com"))   # Missing @
+        self.assertFalse(self.registration.is_valid_email("user@com"))          # No dot after @
+        self.assertFalse(self.registration.is_valid_email("user@@example.com")) # Double @
+        self.assertFalse(self.registration.is_valid_email("user@example"))      # Missing TLD
+
 if __name__ == '__main__':
     unittest.main()

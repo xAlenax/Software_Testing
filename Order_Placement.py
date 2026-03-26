@@ -90,11 +90,7 @@ class Cart:
         Returns:
             str: A message indicating the item was removed.
         """
-        initial_len = len(self.items)
         self.items = [item for item in self.items if item.name != name]
-
-        if len(self.items) == initial_len:
-            return f"{name} not found in cart"
         return f"Removed {name} from cart"
 
     def update_item_quantity(self, name, new_quantity):
@@ -190,12 +186,13 @@ class OrderPlacement:
             "delivery_address": self.user_profile.delivery_address,
         }
 
-    def confirm_order(self, payment_method):
+    def confirm_order(self, payment_method, promo_code=None):
         """
-        Confirms the order by validating it and processing the payment.
+        Confirms the order by validating it, applying promo code, and processing the payment.
         
         Args:
             payment_method (PaymentMethod): The method of payment to be used.
+            promo_code (str, optional): The promo code to apply.
         
         Returns:
             dict: A dictionary indicating whether the order was confirmed and an order ID if successful.
@@ -203,15 +200,22 @@ class OrderPlacement:
         if not self.validate_order()["success"]:
             return {"success": False, "message": "Order validation failed"}
 
+        total_info = self.cart.calculate_total()
+        subtotal = total_info["subtotal"]
+        promo_manager = PromoCodeManager()
+        discount = promo_manager.apply_promo_code(promo_code or "", subtotal)
+        final_total = subtotal - discount + total_info["tax"] + total_info["delivery_fee"]
+
         # Process payment using the given payment method.
-        payment_success = payment_method.process_payment(self.cart.calculate_total()["total"])
+        payment_success = payment_method.process_payment(final_total)
 
         if payment_success:
             return {
                 "success": True,
                 "message": "Order confirmed",
                 "order_id": "ORD123456",  # Simulate an order ID.
-                "estimated_delivery": "45 minutes"
+                "estimated_delivery": "45 minutes",
+                "discount_applied": discount
             }
         return {"success": False, "message": "Payment failed"}
 
@@ -234,6 +238,44 @@ class PaymentMethod:
         if amount > 0:
             return True
         return False
+
+
+# PromoCodeManager Class
+class PromoCodeManager:
+    """
+    Manages promo codes for discounts.
+    
+    Attributes:
+        promo_codes (dict): Dictionary of valid promo codes and their discounts.
+    """
+    def __init__(self):
+        """
+        Initializes with some sample promo codes.
+        """
+        self.promo_codes = {
+            "DISCOUNT10": 0.10,  # 10% off
+            "SAVE5": 5.0,  #  €5 off
+        }
+
+    def apply_promo_code(self, code, subtotal):
+        """
+        Applies a promo code to the subtotal.
+        
+        Args:
+            code (str): The promo code.
+            subtotal (float): The order subtotal.
+        
+        Returns:
+            float: The discount amount.
+        """
+        code = code.upper()
+        if code in self.promo_codes:
+            discount_rate = self.promo_codes[code]
+            if discount_rate < 1:
+                return subtotal * discount_rate
+            else:
+                return min(discount_rate, subtotal)
+        return 0.0
 
 
 # UserProfile Class (for simulating the user's details)
@@ -347,6 +389,19 @@ class TestOrderPlacement(unittest.TestCase):
             result = self.order.confirm_order(payment_method)
             self.assertFalse(result["success"])
             self.assertEqual(result["message"], "Payment failed")
+
+    def test_proceed_to_checkout(self):
+        """
+        Test proceed_to_checkout returns expected totals and address.
+        """
+        self.cart.add_item("Burger", 8.00, 2)
+        checkout_info = self.order.proceed_to_checkout()
+
+        self.assertEqual(checkout_info["delivery_address"], "123 Main St")
+        self.assertIn("total_info", checkout_info)
+        self.assertAlmostEqual(checkout_info["total_info"]["subtotal"], 16.00)
+        self.assertAlmostEqual(checkout_info["total_info"]["tax"], 1.60)
+        self.assertAlmostEqual(checkout_info["total_info"]["delivery_fee"], 5.00)
 
 
 if __name__ == "__main__":

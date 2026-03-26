@@ -182,6 +182,17 @@ class TestPaymentProcessing(unittest.TestCase):
         result = self.payment_processing.process_payment(order, "bitcoin", payment_details)
         self.assertIn("Error: Invalid payment method", result)
 
+    def test_validate_credit_card_invalid_number(self):
+        """
+        Test validate_credit_card returns False when card number length is invalid.
+        """
+        payment_details = {"card_number": "12345",  # Too short
+                        "expiry_date": "12/25",
+                        "cvv": "123"}
+
+        result = self.payment_processing.validate_credit_card(payment_details)
+
+        self.assertFalse(result)
 
 if __name__ == "__main__":
     unittest.main()  # Run the unit tests.
