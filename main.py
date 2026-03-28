@@ -4,10 +4,11 @@ import json
 import os
 
 from User_Registration import UserRegistration
-from Order_Placement import Cart, OrderPlacement, UserProfile, RestaurantMenu, PaymentMethod
+from Order_Placement import Cart, OrderPlacement, UserProfile, RestaurantMenu, PaymentMethod, PromoCodeManager
 from Payment_Processing import PaymentProcessing
 from Restaurant_Browsing import RestaurantDatabase, RestaurantBrowsing
 from Order_History import OrderHistory
+from Favorites_Manager import FavoritesManager
 
 # Utility functions for user data storage
 USERS_FILE = "users.json"
@@ -37,6 +38,8 @@ class Application(tk.Tk):
 
         self.database = RestaurantDatabase()
         self.browsing = RestaurantBrowsing(self.database)
+
+        self.favorites = FavoritesManager()
 
         # Initially no user logged in
         self.logged_in_email = None
@@ -203,6 +206,14 @@ class MainAppFrame(tk.Frame):
         tk.Button(action_frame, text="Checkout", command=self.checkout).pack(side="left", padx=5)
         tk.Button(action_frame, text="View Order History", command=self.view_order_history).pack(side="left", padx=5)
 
+        # Favorites Buttons
+        fav_frame = tk.Frame(self)
+        fav_frame.pack(pady=5)
+
+        tk.Button(fav_frame, text="Add to Favorites", command=self.add_to_favorites).pack(side="left", padx=5)
+        tk.Button(fav_frame, text="Remove Favorite", command=self.remove_favorite).pack(side="left", padx=5)
+        tk.Button(fav_frame, text="View Favorites", command=self.view_favorites).pack(side="left", padx=5)
+
     def search_restaurants(self):
         self.results_tree.delete(*self.results_tree.get_children())
         cuisine = self.cuisine_var.get().strip()
@@ -242,14 +253,56 @@ class MainAppFrame(tk.Frame):
         popup = OrderHistoryPopup(self, self.order_history)
         self.wait_window(popup)
 
-# Validate quantity input. Returns int if valid, raises ValueError if invalid. 
-def validate_quantity(qty_str):
-    if not qty_str:
-        raise ValueError("Quantity is required")
-    qty = int(qty_str)  # may raise ValueError for non-integers
-    if qty <= 0:
-        raise ValueError("Please enter a valid Quantity")
-    return qty
+    # Validate quantity input. Returns int if valid, raises ValueError if invalid. 
+    def validate_quantity(self, qty_str):
+        if not qty_str:
+            raise ValueError("Quantity is required")
+        qty = int(qty_str)  # may raise ValueError for non-integers
+        if qty <= 0:
+            raise ValueError("Please enter a valid Quantity")
+        return qty
+
+    def add_to_favorites(self):
+        selected = self.results_tree.focus()
+        if not selected:
+            messagebox.showerror("Error", "Select a restaurant first.")
+            return
+
+        values = self.results_tree.item(selected, "values")
+        restaurant = values[0]  # cuisine column
+        added = self.master.favorites.add_favorite(restaurant)
+
+        if added:
+            messagebox.showinfo("Favorites", f"{restaurant} added to favorites.")
+        else:
+            messagebox.showinfo("Favorites", f"{restaurant} is already in favorites.")
+
+    def remove_favorite(self):
+        selected = self.results_tree.focus()
+        if not selected:
+            messagebox.showerror("Error", "Select a restaurant first.")
+            return
+
+        values = self.results_tree.item(selected, "values")
+        restaurant = values[0]
+
+        removed = self.master.favorites.remove_favorite(restaurant)
+        if removed:
+            messagebox.showinfo("Favorites", f"{restaurant} removed from favorites.")
+        else:
+            messagebox.showerror("Favorites", f"{restaurant} is not in your favorites.")
+
+    def view_favorites(self):
+        favs = self.master.favorites.view_favorites()
+        if not favs:
+            messagebox.showinfo("Favorites", "You have no favorite restaurants.")
+            return
+
+        popup = tk.Toplevel(self)
+        popup.title("Your Favorites")
+
+        for f in favs:
+            tk.Label(popup, text=f).pack(pady=3)
 
 class AddItemPopup(tk.Toplevel):
     def __init__(self, master, menu, cart):
@@ -274,7 +327,7 @@ class AddItemPopup(tk.Toplevel):
     def add_to_cart(self):
         item = self.item_var.get()
         try:
-            qty = validate_quantity(self.qty_entry.get())
+            qty = self.master.validate_quantity(self.qty_entry.get())
         except ValueError as e:
            messagebox.showerror("Error", str(e))
            return
@@ -331,6 +384,10 @@ class CheckoutPopup(tk.Toplevel):
 
         tk.Label(self, text=f"Delivery Address: {order_data['delivery_address']}").pack(pady=5)
 
+        tk.Label(self, text="Promo Code:").pack(pady=5)
+        self.promo_entry = tk.Entry(self)
+        self.promo_entry.pack(pady=5)
+
         # Payment method selection
         tk.Label(self, text="Payment Method:").pack(pady=5)
         self.payment_method = tk.StringVar()
@@ -352,18 +409,26 @@ class CheckoutPopup(tk.Toplevel):
         # If you wanted to use PaymentProcessing, you could do so by integrating it as well.
         # For now, we'll simulate PaymentMethod.process_payment by checking if total > 0.
         # In a full scenario, integrate PaymentProcessing similarly.
-
+        promo_code = self.promo_entry.get().strip()
         # Confirm the order
-        result = self.order_placement.confirm_order(payment_method_obj)
+        result = self.order_placement.confirm_order(payment_method_obj, promo_code)
+
         if result["success"]:
             order_data = self.order_placement.proceed_to_checkout()
+
+            # Add FINAL PRICE with discount applied
             self.master.order_history.add_order(
                 result["order_id"],
                 order_data["items"],
-                order_data["total_info"]["total"]
-        )
+                order_data["total_info"]["total"] - result["discount_applied"]
+            )
 
-            messagebox.showinfo("Order Confirmed", f"Order ID: {result['order_id']}\nEstimated Delivery: {result['estimated_delivery']}")
+            messagebox.showinfo(
+                "Order Confirmed",
+                f"Order ID: {result['order_id']}\n"
+                f"Estimated Delivery: {result['estimated_delivery']}\n"
+                f"Discount applied: €{result['discount_applied']:.2f}"
+            )
             self.destroy()
         else:
             messagebox.showerror("Error", result["message"])
