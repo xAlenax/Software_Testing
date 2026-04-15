@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List Manager</h1>
+
+        <!-- Regular Tasks Section -->
+        <div class="section">
+            <h2>Regular Tasks</h2>
+            <input type="text" id="taskInput" placeholder="Add a new regular task">
+            <button onclick="addTask()">Add Task</button>
+            <button onclick="archiveCompleted()">Archive Completed Tasks</button>
+            <ul id="taskList"></ul>
+        </div>
+
+        <!-- Important Tasks Section -->
+        <div class="section">
+            <h2>Important Tasks</h2>
+            <input type="text" id="importantTaskInput" placeholder="Add an important task">
+            <button onclick="addImportantTask()">Add Important Task</button>
+            <ul id="importantTaskList"></ul>
+        </div>
+
+        <!-- History / Archive Section -->
+        <div class="section">
+            <h2>History / Archived Tasks</h2>
+            <ul id="archiveList"></ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
