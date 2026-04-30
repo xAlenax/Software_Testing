@@ -37,6 +37,17 @@ This project improves the testing quality of the MobileFoodDeliveryApp using:
 - test_payment_mock.py → Mocking payment interactions
 - test_payment_fake.py → Fake payment gateway implementation
 
+### Unit Testing Commands
+
+#### Run a single test
+python3 -m unittest test.test_favorites_manager
+
+#### Run all tests
+python3 -m unittest discover -s tests
+
+#### Run tests (verbose mode)
+python3 -m unittest discover -v
+
 ## Code Coverage
 
 Coverage tool used:
