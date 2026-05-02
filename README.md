@@ -1,15 +1,19 @@
-# MobileFoodDeliveryApp – Practical Unit Testing Frameworks, Mocking, Stubbing and Fakes
+# Practical Unit Testing Frameworks, Mocking, Stubbing and Fakes
 
 ## Overview
-This project improves the testing quality of the MobileFoodDeliveryApp using:
-- Unit testing (pytest)
-- Code coverage analysis
-- Test-driven development (TDD)
-- Isolation techniques (stubs, mocks, fakes)
+This task focuses on improving the testing quality of the MobileFoodDeliveryApp using:
+- Unit testing with pytest
+- Code coverage analysis (coverage.py)
+- Test-Driven Development (TDD)
+- Test isolation techniques:
+  - Stubs
+  - Mocks
+  - Fakes
+The goal is to improve test reliability, coverage and maintainability.
 
 ## Project Structure
 
-### Application Code
+### Application Modules
 - Favorites_Manager.py
 - Order_History.py
 - Order_Placement.py
@@ -18,8 +22,9 @@ This project improves the testing quality of the MobileFoodDeliveryApp using:
 - User_Registration.py
 - Validators.py
 
-### Unit Tests
-#### Core test files:
+### Test Suite
+
+### Core Tests
 - test_order_placement.py
 - test_payment_processing.py
 - test_restaurant_browsing.py
@@ -27,30 +32,40 @@ This project improves the testing quality of the MobileFoodDeliveryApp using:
 - test_user_registration.py
 - test_favorites_manager.py
 
-#### Validation & edge cases:
+### Edge Case & Validation Tests
 - test_quantity_validation.py
 - test_remove_item.py
 - test_promo_code.py
 
-### Isolation Tests
-- test_email_stub.py → Stub implementation for email validation
-- test_payment_mock.py → Mocking payment interactions
-- test_payment_fake.py → Fake payment gateway implementation
+### Isolation Techniques Tests
+- test_email_stub.py – Stub for email validation
+- test_payment_mock.py – Mocking payment interactions
+- test_payment_fake.py – Fake payment gateway implementation
 
-### Unit Testing Commands
+## Running Tests
 
-#### Run a single test
-python3 -m unittest test.test_favorites_manager
-
-#### Run all tests
+### Run all tests
 python3 -m unittest discover -s tests
 
-#### Run tests (verbose mode)
+### Run with verbose output
 python3 -m unittest discover -v
 
-## Code Coverage
+### Run a single test file
+python3 -m unittest test.test_favorites_manager
 
-Coverage tool used:
-```bash
-coverage run -m pytest
-coverage report -m
+## Code Coverage
+**Coverage tool used:** coverage.py
+
+### Run coverage analysis
+coverage run -m pytest  
+coverage report -m  
+
+## Testing Techniques Used
+**Stub**: Used to replace external dependencies with fixed responses (e.g., email validation).  
+**Mock**: Used to simulate external services and verify interactions (e.g., payment processing calls).  
+**Fake**: Used as a simplified working implementation of external systems (e.g., payment gateway simulation).  
+
+## Notes
+- Tests are designed to cover normal cases, edge cases and failure scenarios.
+- Focus is on improving both coverage and test quality, not just quantity.
+- All changes were validated using automated test runs and coverage reports.
